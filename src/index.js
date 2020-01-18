@@ -1,12 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
 
-ReactDOM.render(<App />, document.getElementById('root'));
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+function CatBrowser(props) {
+  return (
+      <div className="cat-browser">
+        <div className="cat-dropdown">
+          <h1>Cat Browser</h1>
+        </div>
+        <div className="cat-list">
+        </div>
+        <div className="cat-detail">
+        </div>
+      </div>
+    );
+}
+
+// ========================================
+
+ReactDOM.render(
+  <CatBrowser />,
+  document.getElementById('root')
+);
