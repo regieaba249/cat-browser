@@ -2,16 +2,49 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 
-function CatBrowser(props) {
+class BreedSearch extends React.Component {
+  constructor(props) {
+      super(props);
+      this.state = {
+          breeds: [],
+      };
+  }
+
+  componentDidMount() {
+    fetch("https://api.thecatapi.com/v1/breeds")
+      .then(response => {
+        return response.json();
+      })
+      .then(data => {
+        let breedsFromApi = data.map((breed) => {
+          return {value: breed.id, display: breed.name}
+        });
+        this.setState({
+          breeds: breedsFromApi
+        });
+      })
+      .catch(error => {
+        console.log(error);
+      });
+  }
+
+  render() {
+    return (
+      <div>
+        <select>
+          <option key='' value=''>Select breed</option>
+          {this.state.breeds.map((item) => <option key={item.value} value={item.value}>{item.display}</option>)}
+        </select>
+      </div>
+    )
+  }
+}
+
+function CatBreedSearch(props) {
   return (
       <div className="cat-browser">
-        <div className="cat-dropdown">
-          <h1>Cat Browser</h1>
-        </div>
-        <div className="cat-list">
-        </div>
-        <div className="cat-detail">
-        </div>
+        <h1>Cat Browserssss</h1>
+        <BreedSearch />
       </div>
     );
 }
@@ -19,6 +52,6 @@ function CatBrowser(props) {
 // ========================================
 
 ReactDOM.render(
-  <CatBrowser />,
+  <CatBreedSearch />,
   document.getElementById('root')
 );
