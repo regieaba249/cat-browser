@@ -8,13 +8,14 @@ import {
 } from "react-router-dom";
 
 import axios from 'axios';
+import './index.scss';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 axios.defaults.baseURL = 'https://api.thecatapi.com';
 axios.defaults.headers.common["x-api-key"] = "a35b8e1a-ea47-4a8a-9acf-00d9934c728c";
 
 
-function Cat(props) {
+function CatDetails(props) {
   let details = props.details
   return (
     <div className="Cat">
@@ -36,84 +37,124 @@ function Cat(props) {
   )
 }
 
+function CatThumbnail(props) {
+  if (props.cats.length === 0) {
+    return (
+      <div className="row">
+        <div className="col-md-3 col-sm-6 col-12">
+          {props.loading ? "Loading Cats..." : "No cats available" }
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="row">
+      {props.cats.map((cat) => {
+        return (
+          <div className="col-md-3 col-sm-6 col-12" key={cat.id}>
+            <div className="card">
+              <img className="card-img-top" src={cat.url} alt={cat.id}/>
+              <div className="card-body">
+                <Link
+                  to={`/${cat.id}`}
+                  onClick={() => props.detailHandler(cat)}
+                  className="btn btn-primary btn-block"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 class Cats extends React.Component {
   constructor(props) {
       super(props);
       this.state = {
         cats: [],
+        page: 0,
+        more: true,
+        loading: false,
       };
   }
 
   fetchCats() {
-    let selected = this.props.selected;
-    if (selected.length) {
-      const params = {
-        "breed_id": selected,
+    if (this.props.selected.length) {
+      let params = {
+        "breed_id": this.props.selected,
         "limit": 10,
-        "page": 1,
-        "order": "ASC"
+        "order": "ASC",
+        "page": this.state.page
       }
-      axios.get(`/v1/images/search`, { params })
-        .then(response => {
-          let cats = response.data.map((cat) => {
-            return cat
+      this.setState({ loading: true }, () => {
+        axios.get(`/v1/images/search`, { params })
+          .then(response => {
+            let cats = response.data.map((cat) => { return cat });
+            let newArray = this.state.cats.slice();
+            let update = { cats: newArray.concat(cats), loading: false }
+            if (cats.length < 10) {
+              update.more = false
+              update.page = 0
+            } else {
+              update.page = params.page + 1
+            }
+            this.setState((state) => update);
+          })
+          .catch(error => {
+            console.log(error);
           });
-          this.setState({ cats });
-        })
-        .catch(error => {
-          console.log(error);
-        });
+      });
     }
   }
 
   componentDidMount() {
-    console.log('Cats - componentDidMount');
     this.fetchCats();
   }
 
   componentDidUpdate(prevProps) {
-    // Typical usage (don't forget to compare props):
     if (this.props.selected !== prevProps.selected) {
-      this.fetchCats();
+      this.setState({
+        cats: [],
+        page: 0,
+        more: true,
+      }, () => {this.fetchCats()});
     }
   }
 
-  renderCats(cat) {
-    const logo = cat.url
-    let detailHandler = this.props.detailHandler
-    return (
-      <div className="col-md-3 col-sm-6 col-12" key={cat.id}>
-        <div className="card">
-          <img className="card-img-top" src={logo} alt={cat.id}/>
-          <div className="card-body">
-            <Link
-              to={`/${cat.id}`}
-              onClick={() => detailHandler(cat)}
-              className="btn btn-primary btn-block"
-            >
-              View Details
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
+  renderLoadMore() {
+    if (this.state.more && this.state.cats.length) {
+      return (
+          <button
+            type="button"
+            className="btn btn-success btn-block"
+            onClick={() => this.fetchCats()}
+          >
+            {this.state.loading ? "Loading Cats..." : "Load more" }
+          </button>
+      )
+    }
   }
 
   render() {
-    let cats = this.state.cats;
-    if (cats.length) {
-      return (
-        <div className="row">
-          {cats.map((cat) => this.renderCats(cat))}
+    return (
+      <div className="Cats">
+        <CatThumbnail
+          cats={this.state.cats}
+          detailHandler={this.props.detailHandler}
+          loading={this.state.loading}
+        />
+        <div className="row justify-content-center">
+          <div className="col-md-4 col-sm-6 col-12">
+            {this.renderLoadMore()}
+          </div>
         </div>
-      );
-    } else {
-      return (
-        <div className="row">
-          <div className="col-12">No cats available</div>
-        </div>
-      );
-    }
+      </div>
+    );
   }
 }
 
@@ -128,25 +169,23 @@ class Breed extends React.Component {
   }
 
   render() {
-    let breeds = this.props.breeds
-    let breedHandler = this.props.breedHandler;
-    let selected = this.props.selected;
-
     return (
       <div className="row">
-        <div className="col-md-3 col-sm-6 col-12">
-          <div className="form-group">
-            <label className="form-label" htmlFor="breed">Breed</label>
-            <select
-              id="breed"
-              className="form-control"
-              disabled={breeds.length === 0}
-              onChange={ e => breedHandler(e.target.value) }
-              value={selected}
-            >
-              <option key='' value=''>Select breed</option>
-              {breeds.map((item) => this.renderOption(item))}
-            </select>
+        <div className="col-5">
+          <div className="form-group row">
+            <label htmlFor="inputPassword" className="col-sm-2 col-form-label">Breed</label>
+            <div className="col-sm-10">
+              <select
+                id="breed"
+                className="form-control"
+                disabled={this.props.breeds.length === 0}
+                onChange={ e => this.props.breedHandler(e.target.value) }
+                value={this.props.selected}
+              >
+                <option key='' value=''>Select breed</option>
+                {this.props.breeds.map((item) => this.renderOption(item))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -154,27 +193,24 @@ class Breed extends React.Component {
   }
 }
 
-class Home extends React.Component {
-
-  render() {
-    let selected = this.props.selected
-    let breeds = this.props.breeds
-    let breedHandler = this.props.breedHandler
-    let detailHandler = this.props.detailHandler
-    return (
-      <div className="Home">
-        <div className="container">
-          <h1>Cat Browser</h1>
-          <Breed
-            selected={ selected }
-            breeds={ breeds }
-            breedHandler={ breedHandler }
-          />
-          <Cats detailHandler={detailHandler} selected={ selected }/>
-        </div>
+function Home(props) {
+  let selected = props.selected
+  let breeds = props.breeds
+  let breedHandler = props.breedHandler
+  let detailHandler = props.detailHandler
+  return (
+    <div className="Home">
+      <div className="container">
+        <h1>Cat Browser</h1>
+        <Breed
+          selected={ selected }
+          breeds={ breeds }
+          breedHandler={ breedHandler }
+        />
+        <Cats detailHandler={detailHandler} selected={ selected }/>
       </div>
-    )
-  }
+    </div>
+  )
 }
 
 class App extends React.Component {
@@ -205,8 +241,7 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    const params = {"limit": 10}
-    axios.get(`/v1/breeds`, { params })
+    axios.get(`/v1/breeds`)
       .then(response => {
         let breeds = response.data.map((breed) => {
           return {value: breed.id, display: breed.name}
@@ -219,29 +254,22 @@ class App extends React.Component {
   }
 
   render() {
-    let breedHandler = this.handleBreedChange
-    let detailHandler = this.handleDetail
-    let selected = this.state.selected
-    let catId = this.state.catDetails.id
-    let catDetails = this.state.catDetails
     return (
       <div className="App">
         <Router>
-          <div>
-            <Switch>
-              <Route path={`/${catId}`}>
-                <Cat details={catDetails}/>
-              </Route>
-              <Route path="/">
-                <Home
-                  selected={ selected }
-                  breeds={ this.state.breeds }
-                  breedHandler={ breedHandler }
-                  detailHandler={ detailHandler }
-                />
-              </Route>
-            </Switch>
-          </div>
+          <Switch>
+            <Route path={`/${this.state.catDetails.id}`}>
+              <CatDetails details={this.state.catDetails}/>
+            </Route>
+            <Route path="/">
+              <Home
+                selected={ this.state.selected }
+                breeds={ this.state.breeds }
+                breedHandler={ this.handleBreedChange }
+                detailHandler={ this.handleDetail }
+              />
+            </Route>
+          </Switch>
         </Router>
       </div>
     );
